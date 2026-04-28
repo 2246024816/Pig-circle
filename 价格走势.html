@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猪周期价格走势 · 2020—2026</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-paper: #F4F1EA;
+  --text-ink: #2C2B29;
+  --text-muted: #736E67;
+  --accent-rust: #B84B31;
+  --line-subtle: #E2DED6;
+  --font-serif: 'Noto Serif SC', 'Songti SC', serif;
+  --font-sans: 'Inter', 'PingFang SC', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg-paper); color: var(--text-ink);
+  font-family: var(--font-sans); font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+  padding: 40px 48px 32px;
+}
+.header { text-align:center; margin-bottom: 36px; }
+.header h1 { font-family:var(--font-serif); font-size:2.2rem; font-weight:900; margin-bottom:6px; }
+.header .sub { font-size:0.85rem; color:var(--text-muted); letter-spacing:0.04em; }
+.chart-row { display:flex; gap:32px; margin-bottom:28px; }
+.chart-card { flex:1; background:#FAF9F6; border-radius:8px; border:1px solid var(--line-subtle); padding:20px 16px 12px; }
+.chart-card h2 { font-family:var(--font-serif); font-size:1.2rem; font-weight:700; padding-left:8px; border-left:3px solid var(--accent-rust); margin-bottom:4px; }
+.chart-box { width:100%; height:460px; }
+.chart-note { display:flex; gap:18px; flex-wrap:wrap; margin-top:8px; padding:0 6px; font-size:11px; color:var(--text-muted); }
+.chart-note span { display:flex; align-items:center; gap:5px; }
+.dot-live { width:9px; height:9px; border-radius:50%; background:var(--accent-rust); }
+.dot-piglet { width:9px; height:9px; border-radius:50%; background:#D46B08; }
+.dash { width:16px; border-top:2px dashed var(--text-muted); opacity:0.5; }
+.dot-line { width:16px; border-top:1px dotted var(--text-muted); }
+.footer { text-align:center; margin-top:28px; font-size:11px; color:#bfbfbf; }
+
+@media (max-width: 960px) {
+  .chart-row { flex-direction:column; }
+  body { padding:24px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>猪周期价格走势 · 2020—2026</h1>
+  <div class="sub">数据来源：国家统计局 · 全国200个农产品集贸市场调查县 · 月度频率 &nbsp;|&nbsp; 鼠标悬停看详情 · 滚轮缩放 · 底部滑块拖动</div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-card">
+    <h2>活猪（中等）集贸市场价格</h2>
+    <div id="chart-live" class="chart-box"></div>
+    <div class="chart-note">
+      <span><span class="dot-live"></span> 月度价格（元/kg）</span>
+      <span><span class="dash"></span> 5月移动均线</span>
+      <span><span class="dot-line"></span> 全周期均值</span>
+      <span style="margin-left:auto;">底色 = 周期阶段</span>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h2>仔猪（普通）集贸市场价格</h2>
+    <div id="chart-piglet" class="chart-box"></div>
+    <div class="chart-note">
+      <span><span class="dot-piglet"></span> 月度价格（元/kg）</span>
+      <span><span class="dash"></span> 5月移动均线</span>
+      <span><span class="dot-line"></span> 全周期均值</span>
+      <span style="margin-left:auto;">底色 = 周期阶段</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">制图：Proma Agent · 交互式数据可视化 &nbsp;|&nbsp; 2026年4月</div>
+
+<script>
+var DATA = [{"date":"2020-01-01","live_price":34.89,"pork_price":54.09,"piglet_price":69.72,"live_mom":6.9,"live_yoy":179.3,"piglet_mom":4.0,"piglet_yoy":194.6,"date_display":"2020年01月"},{"date":"2020-02-01","live_price":36.33,"pork_price":57.97,"piglet_price":73.83,"live_mom":4.1,"live_yoy":184.5,"piglet_mom":5.9,"piglet_yoy":187.2,"date_display":"2020年02月"},{"date":"2020-03-01","live_price":34.92,"pork_price":53.62,"piglet_price":83.55,"live_mom":-3.9,"live_yoy":134.0,"piglet_mom":13.2,"piglet_yoy":153.9,"date_display":"2020年03月"},{"date":"2020-04-01","live_price":33.02,"pork_price":49.85,"piglet_price":86.23,"live_mom":-5.4,"live_yoy":120.7,"piglet_mom":3.2,"piglet_yoy":148.6,"date_display":"2020年04月"},{"date":"2020-05-01","live_price":29.52,"pork_price":45.44,"piglet_price":82.12,"live_mom":-10.6,"live_yoy":97.1,"piglet_mom":-4.8,"piglet_yoy":132.4,"date_display":"2020年05月"},{"date":"2020-06-01","live_price":32.63,"pork_price":49.84,"piglet_price":85.86,"live_mom":10.5,"live_yoy":98.4,"piglet_mom":4.6,"piglet_yoy":128.8,"date_display":"2020年06月"},{"date":"2020-07-01","live_price":35.63,"pork_price":54.52,"piglet_price":90.64,"live_mom":9.2,"live_yoy":98.3,"piglet_mom":5.6,"piglet_yoy":134.3,"date_display":"2020年07月"},{"date":"2020-08-01","live_price":36.52,"pork_price":55.44,"piglet_price":94.32,"live_mom":2.5,"live_yoy":58.2,"piglet_mom":4.1,"piglet_yoy":111.5,"date_display":"2020年08月"},{"date":"2020-09-01","live_price":34.77,"pork_price":53.21,"piglet_price":91.3,"live_mom":-4.8,"live_yoy":29.9,"piglet_mom":-3.2,"piglet_yoy":76.2,"date_display":"2020年09月"},{"date":"2020-10-01","live_price":31.08,"pork_price":47.9,"piglet_price":82.06,"live_mom":-10.6,"live_yoy":-15.1,"piglet_mom":-10.1,"piglet_yoy":22.6,"date_display":"2020年10月"},{"date":"2020-11-01","live_price":30.26,"pork_price":45.66,"piglet_price":77.0,"live_mom":-2.6,"live_yoy":-6.0,"piglet_mom":-6.2,"piglet_yoy":14.8,"date_display":"2020年11月"},{"date":"2020-12-01","live_price":33.58,"pork_price":49.95,"piglet_price":78.77,"live_mom":11.0,"live_yoy":2.9,"piglet_mom":2.3,"piglet_yoy":17.5,"date_display":"2020年12月"},{"date":"2021-01-01","live_price":35.09,"pork_price":52.73,"piglet_price":82.58,"live_mom":4.5,"live_yoy":0.6,"piglet_mom":4.8,"piglet_yoy":18.4,"date_display":"2021年01月"},{"date":"2021-02-01","live_price":30.56,"pork_price":47.15,"piglet_price":82.78,"live_mom":-12.9,"live_yoy":-15.9,"piglet_mom":0.2,"piglet_yoy":12.1,"date_display":"2021年02月"},{"date":"2021-03-01","live_price":28.33,"pork_price":43.2,"piglet_price":80.85,"live_mom":-7.3,"live_yoy":-18.9,"piglet_mom":-2.3,"piglet_yoy":-3.2,"date_display":"2021年03月"},{"date":"2021-04-01","live_price":24.42,"pork_price":37.02,"piglet_price":75.16,"live_mom":-13.8,"live_yoy":-26.0,"piglet_mom":-7.0,"piglet_yoy":-12.8,"date_display":"2021年04月"},{"date":"2021-05-01","live_price":19.64,"pork_price":30.45,"piglet_price":64.22,"live_mom":-19.6,"live_yoy":-33.5,"piglet_mom":-14.6,"piglet_yoy":-21.8,"date_display":"2021年05月"},{"date":"2021-06-01","live_price":14.81,"pork_price":24.3,"piglet_price":45.91,"live_mom":-24.6,"live_yoy":-54.6,"piglet_mom":-28.5,"piglet_yoy":-46.5,"date_display":"2021年06月"},{"date":"2021-07-01","live_price":16.0,"pork_price":25.59,"piglet_price":43.47,"live_mom":8.0,"live_yoy":-55.1,"piglet_mom":-5.3,"piglet_yoy":-52.0,"date_display":"2021年07月"},{"date":"2021-08-01","live_price":15.27,"pork_price":24.89,"piglet_price":39.11,"live_mom":-4.6,"live_yoy":-58.2,"piglet_mom":-10.0,"piglet_yoy":-58.5,"date_display":"2021年08月"},{"date":"2021-09-01","live_price":13.53,"pork_price":22.53,"piglet_price":32.45,"live_mom":-11.4,"live_yoy":-61.1,"piglet_mom":-17.0,"piglet_yoy":-64.5,"date_display":"2021年09月"},{"date":"2021-10-01","live_price":15.54,"pork_price":25.28,"piglet_price":31.22,"live_mom":14.9,"live_yoy":-50.0,"piglet_mom":-3.8,"piglet_yoy":-62.0,"date_display":"2021年10月"},{"date":"2021-11-01","live_price":18.1,"pork_price":28.3,"piglet_price":33.14,"live_mom":16.5,"live_yoy":-40.2,"piglet_mom":6.1,"piglet_yoy":-57.0,"date_display":"2021年11月"},{"date":"2021-12-01","live_price":17.51,"pork_price":27.94,"piglet_price":32.16,"live_mom":-3.3,"live_yoy":-47.9,"piglet_mom":-3.0,"piglet_yoy":-59.2,"date_display":"2021年12月"},{"date":"2022-01-01","live_price":15.83,"pork_price":26.06,"piglet_price":30.91,"live_mom":-9.6,"live_yoy":-54.9,"piglet_mom":-3.9,"piglet_yoy":-62.6,"date_display":"2022年01月"},{"date":"2022-02-01","live_price":14.06,"pork_price":23.65,"piglet_price":28.94,"live_mom":-11.2,"live_yoy":-54.0,"piglet_mom":-6.4,"piglet_yoy":-65.0,"date_display":"2022年02月"},{"date":"2022-03-01","live_price":13.06,"pork_price":22.14,"piglet_price":27.85,"live_mom":-7.1,"live_yoy":-53.9,"piglet_mom":-3.8,"piglet_yoy":-65.6,"date_display":"2022年03月"},{"date":"2022-04-01","live_price":14.31,"pork_price":23.37,"piglet_price":30.42,"live_mom":9.6,"live_yoy":-41.4,"piglet_mom":9.2,"piglet_yoy":-59.5,"date_display":"2022年04月"},{"date":"2022-05-01","live_price":15.51,"pork_price":24.6,"piglet_price":35.24,"live_mom":8.4,"live_yoy":-21.0,"piglet_mom":15.8,"piglet_yoy":-45.1,"date_display":"2022年05月"},{"date":"2022-06-01","live_price":16.69,"pork_price":26.25,"piglet_price":37.74,"live_mom":7.6,"live_yoy":12.7,"piglet_mom":7.1,"piglet_yoy":-17.8,"date_display":"2022年06月"},{"date":"2022-07-01","live_price":21.63,"pork_price":33.46,"piglet_price":43.59,"live_mom":29.6,"live_yoy":35.2,"piglet_mom":15.5,"piglet_yoy":0.3,"date_display":"2022年07月"},{"date":"2022-08-01","live_price":21.85,"pork_price":33.72,"piglet_price":43.73,"live_mom":1.0,"live_yoy":43.1,"piglet_mom":0.3,"piglet_yoy":11.8,"date_display":"2022年08月"},{"date":"2022-09-01","live_price":23.56,"pork_price":35.84,"piglet_price":45.17,"live_mom":7.8,"live_yoy":74.1,"piglet_mom":3.3,"piglet_yoy":39.2,"date_display":"2022年09月"},{"date":"2022-10-01","live_price":27.22,"pork_price":41.86,"piglet_price":47.48,"live_mom":15.5,"live_yoy":75.2,"piglet_mom":5.1,"piglet_yoy":52.1,"date_display":"2022年10月"},{"date":"2022-11-01","live_price":24.82,"pork_price":38.76,"piglet_price":44.53,"live_mom":-8.8,"live_yoy":37.1,"piglet_mom":-6.2,"piglet_yoy":34.4,"date_display":"2022年11月"},{"date":"2022-12-01","live_price":19.58,"pork_price":32.7,"piglet_price":39.8,"live_mom":-21.1,"live_yoy":11.8,"piglet_mom":-10.6,"piglet_yoy":23.8,"date_display":"2022年12月"},{"date":"2023-01-01","live_price":17.45,"pork_price":29.26,"piglet_price":36.9,"live_mom":-10.9,"live_yoy":10.2,"piglet_mom":-7.3,"piglet_yoy":19.4,"date_display":"2023年01月"},{"date":"2023-02-01","live_price":16.33,"pork_price":26.29,"piglet_price":37.88,"live_mom":-6.4,"live_yoy":16.1,"piglet_mom":2.7,"piglet_yoy":30.9,"date_display":"2023年02月"},{"date":"2023-03-01","live_price":15.86,"pork_price":25.13,"piglet_price":38.42,"live_mom":-2.9,"live_yoy":21.4,"piglet_mom":1.4,"piglet_yoy":38.0,"date_display":"2023年03月"},{"date":"2023-04-01","live_price":15.05,"pork_price":23.8,"piglet_price":37.63,"live_mom":-5.1,"live_yoy":5.2,"piglet_mom":-2.1,"piglet_yoy":23.7,"date_display":"2023年04月"},{"date":"2023-05-01","live_price":14.84,"pork_price":23.26,"piglet_price":37.44,"live_mom":-1.4,"live_yoy":-4.3,"piglet_mom":-0.5,"piglet_yoy":6.2,"date_display":"2023年05月"},{"date":"2023-06-01","live_price":14.67,"pork_price":22.91,"piglet_price":35.78,"live_mom":-1.1,"live_yoy":-12.1,"piglet_mom":-4.4,"piglet_yoy":-5.2,"date_display":"2023年06月"},{"date":"2023-07-01","live_price":14.73,"pork_price":22.82,"piglet_price":33.84,"live_mom":0.4,"live_yoy":-31.9,"piglet_mom":-5.4,"piglet_yoy":-22.4,"date_display":"2023年07月"},{"date":"2023-08-01","live_price":16.98,"pork_price":25.99,"piglet_price":35.36,"live_mom":15.3,"live_yoy":-22.3,"piglet_mom":4.5,"piglet_yoy":-19.1,"date_display":"2023年08月"},{"date":"2023-09-01","live_price":16.75,"pork_price":26.1,"piglet_price":33.73,"live_mom":-1.4,"live_yoy":-28.9,"piglet_mom":-4.6,"piglet_yoy":-25.3,"date_display":"2023年09月"},{"date":"2023-10-01","live_price":15.98,"pork_price":25.16,"piglet_price":30.83,"live_mom":-4.6,"live_yoy":-41.3,"piglet_mom":-8.6,"piglet_yoy":-35.1,"date_display":"2023年10月"},{"date":"2023-11-01","live_price":15.63,"pork_price":24.5,"piglet_price":28.85,"live_mom":-2.2,"live_yoy":-37.0,"piglet_mom":-6.4,"piglet_yoy":-35.2,"date_display":"2023年11月"},{"date":"2023-12-01","live_price":15.43,"pork_price":24.43,"piglet_price":27.75,"live_mom":-1.3,"live_yoy":-21.2,"piglet_mom":-3.8,"piglet_yoy":-30.3,"date_display":"2023年12月"},{"date":"2024-01-01","live_price":15.31,"pork_price":24.43,"piglet_price":28.97,"live_mom":-0.8,"live_yoy":-12.3,"piglet_mom":4.4,"piglet_yoy":-21.5,"date_display":"2024年01月"},{"date":"2024-02-01","live_price":15.16,"pork_price":24.61,"piglet_price":31.09,"live_mom":-1.0,"live_yoy":-7.2,"piglet_mom":7.3,"piglet_yoy":-17.9,"date_display":"2024年02月"},{"date":"2024-03-01","live_price":15.5,"pork_price":24.49,"piglet_price":33.46,"live_mom":2.2,"live_yoy":-2.3,"piglet_mom":7.6,"piglet_yoy":-12.9,"date_display":"2024年03月"},{"date":"2024-04-01","live_price":15.53,"pork_price":24.31,"piglet_price":35.56,"live_mom":0.2,"live_yoy":3.2,"piglet_mom":6.3,"piglet_yoy":-5.5,"date_display":"2024年04月"},{"date":"2024-05-01","live_price":16.21,"pork_price":25.11,"piglet_price":37.31,"live_mom":4.4,"live_yoy":9.2,"piglet_mom":4.9,"piglet_yoy":-0.3,"date_display":"2024年05月"},{"date":"2024-06-01","live_price":17.89,"pork_price":27.84,"piglet_price":40.62,"live_mom":10.4,"live_yoy":21.9,"piglet_mom":8.9,"piglet_yoy":13.5,"date_display":"2024年06月"},{"date":"2024-07-01","live_price":18.91,"pork_price":29.11,"piglet_price":41.58,"live_mom":5.7,"live_yoy":28.4,"piglet_mom":2.4,"piglet_yoy":22.9,"date_display":"2024年07月"},{"date":"2024-08-01","live_price":20.3,"pork_price":31.39,"piglet_price":42.64,"live_mom":7.4,"live_yoy":19.6,"piglet_mom":2.5,"piglet_yoy":20.6,"date_display":"2024年08月"},{"date":"2024-09-01","live_price":19.28,"pork_price":30.62,"piglet_price":39.55,"live_mom":-5.0,"live_yoy":15.1,"piglet_mom":-7.2,"piglet_yoy":17.3,"date_display":"2024年09月"},{"date":"2024-10-01","live_price":18.62,"pork_price":29.34,"piglet_price":37.03,"live_mom":-3.4,"live_yoy":16.5,"piglet_mom":-6.4,"piglet_yoy":20.1,"date_display":"2024年10月"},{"date":"2024-11-01","live_price":17.86,"pork_price":28.36,"piglet_price":35.82,"live_mom":-4.1,"live_yoy":14.3,"piglet_mom":-3.3,"piglet_yoy":24.2,"date_display":"2024年11月"},{"date":"2024-12-01","live_price":17.18,"pork_price":27.5,"piglet_price":35.06,"live_mom":-3.8,"live_yoy":11.4,"piglet_mom":-2.5,"piglet_yoy":26.2,"date_display":"2024年12月"},{"date":"2025-01-01","live_price":17.22,"pork_price":27.82,"piglet_price":35.83,"live_mom":0.2,"live_yoy":12.4,"piglet_mom":2.2,"piglet_yoy":23.5,"date_display":"2025年01月"},{"date":"2025-02-01","live_price":16.45,"pork_price":26.51,"piglet_price":36.57,"live_mom":-4.4,"live_yoy":8.6,"piglet_mom":2.1,"piglet_yoy":17.4,"date_display":"2025年02月"},{"date":"2025-03-01","live_price":15.97,"pork_price":25.69,"piglet_price":37.55,"live_mom":-3.0,"live_yoy":3.0,"piglet_mom":2.7,"piglet_yoy":11.9,"date_display":"2025年03月"},{"date":"2025-04-01","live_price":15.92,"pork_price":25.49,"piglet_price":38.18,"live_mom":-0.3,"live_yoy":2.5,"piglet_mom":1.7,"piglet_yoy":7.4,"date_display":"2025年04月"},{"date":"2025-05-01","live_price":15.55,"pork_price":25.02,"piglet_price":37.51,"live_mom":-2.3,"live_yoy":-4.1,"piglet_mom":-1.8,"piglet_yoy":0.5,"date_display":"2025年05月"},{"date":"2025-06-01","live_price":15.29,"pork_price":24.67,"piglet_price":36.32,"live_mom":-1.7,"live_yoy":-14.6,"piglet_mom":-3.2,"piglet_yoy":-10.6,"date_display":"2025年06月"},{"date":"2025-07-01","live_price":15.26,"pork_price":24.66,"piglet_price":35.43,"live_mom":-0.2,"live_yoy":-19.3,"piglet_mom":-2.5,"piglet_yoy":-14.8,"date_display":"2025年07月"},{"date":"2025-08-01","live_price":14.94,"pork_price":24.32,"piglet_price":33.6,"live_mom":-2.1,"live_yoy":-26.4,"piglet_mom":-5.2,"piglet_yoy":-21.2,"date_display":"2025年08月"},{"date":"2025-09-01","live_price":14.27,"pork_price":23.7,"piglet_price":30.72,"live_mom":-4.4,"live_yoy":-26.0,"piglet_mom":-8.6,"piglet_yoy":-22.4,"date_display":"2025年09月"},{"date":"2025-10-01","live_price":13.41,"pork_price":22.67,"piglet_price":27.88,"live_mom":-6.0,"live_yoy":-27.9,"piglet_mom":-9.2,"piglet_yoy":-24.8,"date_display":"2025年10月"},{"date":"2025-11-01","live_price":13.23,"pork_price":22.3,"piglet_price":27.33,"live_mom":-1.3,"live_yoy":-25.9,"piglet_mom":-2.0,"piglet_yoy":-24.0,"date_display":"2025年11月"},{"date":"2025-12-01","live_price":13.01,"pork_price":21.93,"piglet_price":26.75,"live_mom":-1.7,"live_yoy":-24.3,"piglet_mom":-2.1,"piglet_yoy":-23.7,"date_display":"2025年12月"},{"date":"2026-01-01","live_price":13.95,"pork_price":23.1,"piglet_price":28.78,"live_mom":7.2,"live_yoy":-19.0,"piglet_mom":7.6,"piglet_yoy":-19.7,"date_display":"2026年01月"},{"date":"2026-02-01","live_price":13.38,"pork_price":22.95,"piglet_price":29.35,"live_mom":-4.1,"live_yoy":-18.7,"piglet_mom":2.0,"piglet_yoy":-19.7,"date_display":"2026年02月"},{"date":"2026-03-01","live_price":12.03,"pork_price":21.17,"piglet_price":27.87,"live_mom":-10.1,"live_yoy":-24.6,"piglet_mom":-5.0,"piglet_yoy":-25.8,"date_display":"2026年03月"}];
+
+var dates = DATA.map(function(r){return r.date;});
+var liveVals = DATA.map(function(r){return r.live_price;});
+var pigletVals = DATA.map(function(r){return r.piglet_price;});
+
+function smooth(arr, w) {
+  var out = [];
+  for (var i=0; i<arr.length; i++) {
+    var s=0, c=0;
+    for (var j=Math.max(0,i-w+1); j<=Math.min(arr.length-1,i+w-1); j++) { s+=arr[j]; c++; }
+    out.push(+(s/c).toFixed(2));
+  }
+  return out;
+}
+var liveMA5 = smooth(liveVals, 5);
+var pigletMA5 = smooth(pigletVals, 5);
+var liveAvg = +(liveVals.reduce(function(a,b){return a+b;},0)/liveVals.length).toFixed(1);
+var pigletAvg = +(pigletVals.reduce(function(a,b){return a+b;},0)/pigletVals.length).toFixed(1);
+
+// Phase definitions
+var livePhases = [
+  {s:'2020-01-01',e:'2020-09-01',c:'rgba(184,75,49,0.06)',n:'超级周期高位'},
+  {s:'2020-09-01',e:'2021-10-01',c:'rgba(115,110,103,0.05)',n:'断崖下跌'},
+  {s:'2021-10-01',e:'2022-11-01',c:'rgba(184,75,49,0.06)',n:'触底反弹'},
+  {s:'2022-11-01',e:'2024-02-01',c:'rgba(115,110,103,0.05)',n:'低位震荡'},
+  {s:'2024-02-01',e:'2024-09-01',c:'rgba(184,75,49,0.06)',n:'温和反弹'},
+  {s:'2024-09-01',e:'2026-04-01',c:'rgba(115,110,103,0.05)',n:'持续下行'},
+];
+var pigletPhases = [
+  {s:'2020-01-01',e:'2020-09-01',c:'rgba(184,75,49,0.06)',n:'仔猪天价'},
+  {s:'2020-09-01',e:'2022-03-01',c:'rgba(115,110,103,0.05)',n:'雪崩下跌'},
+  {s:'2022-03-01',e:'2022-11-01',c:'rgba(184,75,49,0.06)',n:'快速反弹'},
+  {s:'2022-11-01',e:'2024-02-01',c:'rgba(115,110,103,0.05)',n:'低位盘整'},
+  {s:'2024-02-01',e:'2024-08-01',c:'rgba(184,75,49,0.06)',n:'温和修复'},
+  {s:'2024-08-01',e:'2026-04-01',c:'rgba(115,110,103,0.05)',n:'二次探底'},
+];
+
+function makeMarkAreas(phases) {
+  return phases.map(function(p){
+    return [{xAxis:p.s,itemStyle:{color:p.c}},{xAxis:p.e,name:p.n}];
+  });
+}
+
+// Key turning points
+var liveKPs = [
+  {d:'2020-08-01',t:'peak',label:'2020.08\n36.5元'},
+  {d:'2021-09-01',t:'trough',label:'2021.09\n13.5元'},
+  {d:'2022-03-01',t:'trough',label:'2022.03\n13.1元'},
+  {d:'2022-10-01',t:'peak',label:'2022.10\n27.2元'},
+  {d:'2023-06-01',t:'trough',label:'2023.06\n14.7元'},
+  {d:'2024-08-01',t:'peak',label:'2024.08\n20.3元'},
+  {d:'2026-03-01',t:'trough',label:'2026.03\n12.0元'},
+];
+var pigletKPs = [
+  {d:'2020-08-01',t:'peak',label:'2020.08\n94.3元'},
+  {d:'2022-03-01',t:'trough',label:'2022.03\n27.9元'},
+  {d:'2022-10-01',t:'peak',label:'2022.10\n47.5元'},
+  {d:'2023-12-01',t:'trough',label:'2024.01\n27.8元'},
+  {d:'2024-07-01',t:'peak',label:'2024.07\n41.6元'},
+  {d:'2025-11-01',t:'trough',label:'2025.11\n27.3元'},
+  {d:'2026-03-01',t:'trough',label:'2026.03\n27.9元'},
+];
+
+function findMarkCoords(kps, vals) {
+  return kps.map(function(kp){
+    var idx = dates.indexOf(kp.d);
+    return idx>=0 ? {coord:[kp.d,vals[idx]],label:kp.label,type:kp.t} : null;
+  }).filter(Boolean);
+}
+
+function makeTooltip(priceKey, momKey, yoyKey, priceLabel) {
+  return function(params) {
+    var idx = params[0].dataIndex;
+    if (idx==null) return '';
+    var r = DATA[idx];
+    var mom = r[momKey], yoy = r[yoyKey];
+    var mc = mom>=0?'#B84B31':'#1D39C4';
+    var yc = yoy>=0?'#B84B31':'#1D39C4';
+    var maKey = priceKey==='live_price'?'liveMA5':'pigletMA5';
+    var maVals = priceKey==='live_price'?liveMA5:pigletMA5;
+    return '<div style="font-weight:700;font-size:14px;margin-bottom:8px;font-family:\'Noto Serif SC\',serif;">'+r.date_display+'</div>'+
+      '<table style="font-size:12px;border-collapse:collapse;">'+
+      '<tr><td style="padding:2px 10px 2px 0;color:#736E67;">'+priceLabel+'</td><td style="padding:2px 0;font-weight:700;font-family:\'JetBrains Mono\',monospace;">'+r[priceKey]+' 元/kg</td></tr>'+
+      '<tr><td style="padding:2px 10px 2px 0;color:#736E67;">5月均线</td><td style="padding:2px 0;font-family:\'JetBrains Mono\',monospace;color:#736E67;">'+maVals[idx]+' 元/kg</td></tr>'+
+      '<tr><td style="padding:2px 10px 2px 0;color:#736E67;">环比</td><td style="padding:2px 0;font-weight:600;color:'+mc+';font-family:\'JetBrains Mono\',monospace;">'+(mom>=0?'+':'')+mom+'%</td></tr>'+
+      '<tr><td style="padding:2px 10px 2px 0;color:#736E67;">同比</td><td style="padding:2px 0;font-weight:600;color:'+yc+';font-family:\'JetBrains Mono\',monospace;">'+(yoy>=0?'+':'')+yoy+'%</td></tr>'+
+      '</table>';
+  };
+}
+
+// ── Chart Builder ──
+function buildChart(domId, vals, maVals, avg, phases, kps, color, priceKey, momKey, yoyKey, label, yMin, yMax) {
+  var dom = document.getElementById(domId);
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  var peakCoords = findMarkCoords(kps.filter(function(k){return k.t==='peak';}), vals);
+  var troughCoords = findMarkCoords(kps.filter(function(k){return k.t==='trough';}), vals);
+
+  var option = {
+    tooltip: { trigger:'axis', backgroundColor:'#F4F1EA', borderColor:'#E2DED6', borderWidth:1,
+      padding:[12,16], textStyle:{color:'#2C2B29',fontSize:12},
+      extraCssText:'box-shadow:0 4px 20px rgba(0,0,0,0.06);border-radius:6px;',
+      formatter: makeTooltip(priceKey, momKey, yoyKey, label) },
+    grid: { left:55, right:40, top:40, bottom:55 },
+    xAxis: { type:'time', min:'2020-01-01', max:'2026-05-01',
+      axisLine:{lineStyle:{color:'#E2DED6'}}, axisTick:{show:false},
+      axisLabel:{color:'#736E67',fontSize:10,formatter:function(v){var d=new Date(v);return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2);}},
+      splitLine:{show:false} },
+    yAxis: { type:'value', name:'元 / 公斤',
+      nameTextStyle:{color:'#736E67',fontSize:11,fontWeight:700},
+      axisLabel:{color:'#736E67',fontSize:10,fontFamily:'JetBrains Mono,monospace'},
+      axisLine:{show:false}, axisTick:{show:false},
+      splitLine:{lineStyle:{color:'#E2DED6',type:'dashed',opacity:0.5}},
+      min:yMin, max:yMax },
+    dataZoom: [
+      { type:'slider', bottom:8, height:18, borderColor:'#E2DED6',
+        fillerColor:'rgba(184,75,49,0.06)', handleStyle:{color:'#B84B31'},
+        dataBackground:{lineStyle:{color:'#B84B31'},areaStyle:{color:'rgba(184,75,49,0.04)'}},
+        textStyle:{color:'#736E67',fontSize:9} },
+      { type:'inside' }
+    ],
+    series: [
+      { type:'line', name:'阶段', data:[], markArea:{ silent:true,
+        label:{show:true,position:'insideTop',fontSize:10,color:'#736E67',fontWeight:500},
+        data:makeMarkAreas(phases) }, z:0 },
+      { type:'line', name:label, data:dates.map(function(d,i){return[d,vals[i]];}),
+        lineStyle:{color:color,width:1.8}, itemStyle:{color:color},
+        symbol:'circle', symbolSize:2, emphasis:{symbolSize:6,itemStyle:{borderWidth:2,borderColor:'#F4F1EA'}}, z:10 },
+      { type:'line', name:'5月均线', data:dates.map(function(d,i){return[d,maVals[i]];}),
+        lineStyle:{color:color,width:2.2,type:'dashed',opacity:0.35}, itemStyle:{color:color},
+        symbol:'none', z:9 },
+      { type:'line', name:'均值 '+avg, data:dates.map(function(d){return[d,avg];}),
+        lineStyle:{color:'#BFBFBF',width:1,type:'dotted',opacity:0.7}, symbol:'none', z:1 },
+      { type:'scatter', name:'价格峰', data:peakCoords.map(function(m){return m.coord;}),
+        symbol:'pin', symbolSize:42, itemStyle:{color:'#B84B31'},
+        label:{show:true,formatter:function(p){var m=peakCoords.find(function(x){return x.coord[0]===p.value[0];});return m?m.label:'';},
+          position:'top',distance:10,fontSize:10,fontWeight:'bold',color:'#B84B31',
+          backgroundColor:'#F4F1EA',padding:[3,5],borderRadius:4,borderColor:'#B84B31',borderWidth:1}, z:15 },
+      { type:'scatter', name:'价格谷', data:troughCoords.map(function(m){return m.coord;}),
+        symbol:'pin', symbolSize:42, itemStyle:{color:'#1D39C4'},
+        label:{show:true,formatter:function(p){var m=troughCoords.find(function(x){return x.coord[0]===p.value[0];});return m?m.label:'';},
+          position:'bottom',distance:10,fontSize:10,fontWeight:'bold',color:'#1D39C4',
+          backgroundColor:'#F4F1EA',padding:[3,5],borderRadius:4,borderColor:'#1D39C4',borderWidth:1}, z:15 }
+    ]
+  };
+  chart.setOption(option);
+  window.addEventListener('resize',function(){chart.resize();});
+}
+
+buildChart('chart-live', liveVals, liveMA5, liveAvg, livePhases, liveKPs, '#B84B31', 'live_price', 'live_mom', 'live_yoy', '活猪价格', 6, 42);
+buildChart('chart-piglet', pigletVals, pigletMA5, pigletAvg, pigletPhases, pigletKPs, '#D46B08', 'piglet_price', 'piglet_mom', 'piglet_yoy', '仔猪价格', 18, 105);
+</script>
+</body>
+</html>

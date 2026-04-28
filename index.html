@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猪周期，走完了吗？</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-paper: #F4F1EA; --text-ink: #2C2B29; --text-muted: #736E67;
+  --accent-rust: #B84B31; --line-subtle: #E2DED6;
+  --font-serif: 'Noto Serif SC', 'Songti SC', serif;
+  --font-sans: 'Inter', 'PingFang SC', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --width-reading: 680px; --width-wide: 1050px;
+}
+body, html { margin:0; padding:0; width:100%; height:100%; background-color:var(--bg-paper); color:var(--text-ink); font-family:var(--font-sans); font-size:17px; -webkit-font-smoothing:antialiased; overflow:hidden; }
+.progress-bar { position:fixed; top:0; left:0; height:3px; background-color:var(--accent-rust); width:0%; z-index:999; transition:width 0.4s ease-out; }
+.side-nav { position:fixed; left:30px; top:50%; transform:translateY(-50%); z-index:100; display:flex; flex-direction:column; gap:16px; }
+.nav-item { display:flex; align-items:center; cursor:pointer; transition:opacity 0.3s ease; }
+.nav-indicator { width:4px; height:4px; border-radius:50%; background-color:var(--text-muted); transition:all 0.3s ease; }
+.nav-item:hover .nav-indicator { background-color:var(--text-ink); }
+.nav-item.active .nav-indicator { height:24px; border-radius:2px; background-color:var(--accent-rust); }
+.nav-label { margin-left:12px; font-size:0.75rem; letter-spacing:0.1em; color:var(--text-muted); transition:all 0.25s ease; pointer-events:none; }
+.nav-item:hover .nav-label { color:var(--text-ink); font-weight:500; }
+.nav-item.active .nav-label { color:var(--accent-rust); font-weight:500; }
+.page-indicator { position:fixed; bottom:30px; right:40px; font-family:var(--font-mono); font-size:0.85rem; color:var(--text-muted); letter-spacing:0.1em; z-index:100; }
+.presentation-container { width:100vw; height:100vh; overflow-y:scroll; scroll-snap-type:y mandatory; scroll-behavior:smooth; scrollbar-width:none; -ms-overflow-style:none; }
+.presentation-container::-webkit-scrollbar { display:none; }
+.slide { width:100vw; height:100vh; scroll-snap-align:start; scroll-snap-stop:always; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative; padding:10vh 8vw; box-sizing:border-box; }
+.slide.chart-slide { padding:6vh 6vw; }
+.reveal { opacity:0; transform:translateY(30px); transition:opacity 1s cubic-bezier(0.2,0.8,0.2,1),transform 1s cubic-bezier(0.2,0.8,0.2,1); }
+.slide.is-active .reveal { opacity:1; transform:translateY(0); }
+.slide.is-active .reveal:nth-child(1) { transition-delay:0.1s; }
+.slide.is-active .reveal:nth-child(2) { transition-delay:0.2s; }
+.slide.is-active .reveal:nth-child(3) { transition-delay:0.3s; }
+.slide.is-active .reveal:nth-child(4) { transition-delay:0.4s; }
+.slide.is-active .reveal:nth-child(5) { transition-delay:0.5s; }
+.cover-block { text-align:center; max-width:800px; }
+.cover-block .report-type { font-family:var(--font-mono); font-size:0.9rem; color:var(--accent-rust); letter-spacing:0.2em; margin-bottom:24px; text-transform:uppercase; }
+.cover-block h1 { font-family:var(--font-serif); font-size:3.8rem; font-weight:900; line-height:1.2; margin:0 0 24px 0; }
+.cover-block .meta { margin-top:60px; font-size:0.9rem; color:var(--text-muted); display:flex; justify-content:center; gap:30px; border-top:0.5px solid var(--line-subtle); padding-top:24px; }
+.toc-block { width:100%; max-width:600px; }
+.toc-block h2 { font-family:var(--font-serif); font-size:2rem; border-bottom:2px solid var(--text-ink); padding-bottom:16px; margin-bottom:32px; }
+.toc-item { display:flex; justify-content:space-between; margin-bottom:20px; font-size:1.2rem; cursor:pointer; transition:color 0.3s; }
+.toc-item:hover { color:var(--accent-rust); }
+.toc-item .dots { flex-grow:1; border-bottom:1px dotted var(--line-subtle); margin:0 16px 8px 16px; }
+.chapter-breath { text-align:center; }
+.chapter-breath .chapter-num { font-family:var(--font-mono); font-size:1.2rem; color:var(--accent-rust); letter-spacing:0.2em; margin-bottom:24px; }
+.chapter-breath h2 { font-family:var(--font-serif); font-size:3.5rem; margin:0; line-height:1.2; }
+.prose-block { width:100%; max-width:var(--width-reading); }
+.prose-block p { line-height:1.9; margin-bottom:1.5em; font-weight:300; text-align:justify; font-size:1.1rem; }
+.prose-block p.drop-cap::first-letter { font-family:var(--font-serif); font-size:4rem; color:var(--accent-rust); float:left; line-height:0.8; margin-right:16px; margin-top:8px; }
+.insight-quote { max-width:var(--width-reading); padding-left:40px; border-left:2px solid var(--accent-rust); margin:40px auto; }
+.insight-quote p { font-family:var(--font-serif); font-size:2.2rem; line-height:1.5; font-weight:700; margin:0 0 20px 0; }
+.insight-quote cite { font-family:var(--font-sans); font-size:1.1rem; color:var(--text-muted); font-style:normal; }
+.statement-hero { text-align:center; max-width:900px; width:100%; }
+.statement-hero h2 { font-family:var(--font-serif); font-size:3.5rem; line-height:1.4; margin:0; }
+.statement-hero .highlight { color:var(--accent-rust); display:block; margin-top:16px; }
+.key-points-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:40px; max-width:var(--width-wide); width:100%; }
+.grid-item { border-top:2px solid var(--text-ink); padding-top:24px; }
+.grid-item .num { font-family:var(--font-mono); font-size:1.2rem; color:var(--accent-rust); margin-bottom:16px; display:block; }
+.grid-item h3 { font-family:var(--font-serif); font-size:1.6rem; margin:0 0 16px 0; line-height:1.3; }
+.grid-item p { font-size:1.05rem; color:var(--text-muted); line-height:1.6; margin:0; }
+.stepped-list { max-width:800px; width:100%; display:flex; flex-direction:column; gap:24px; }
+.stepped-item { display:flex; align-items:flex-start; gap:32px; border-bottom:0.5px solid var(--line-subtle); padding-bottom:24px; }
+.stepped-item:last-child { border-bottom:none; }
+.stepped-num { font-family:var(--font-mono); font-size:2.2rem; color:var(--accent-rust); font-weight:700; line-height:1; min-width:55px; }
+.stepped-content h3 { font-family:var(--font-serif); font-size:1.5rem; margin:0 0 6px 0; color:var(--text-ink); }
+.stepped-content p { font-size:1.05rem; color:var(--text-muted); line-height:1.6; margin:0; }
+.table-wrapper { width:100%; max-width:var(--width-wide); overflow-x:auto; margin-bottom:24px; }
+.academic-table { width:100%; border-collapse:collapse; text-align:right; }
+.academic-table th { font-family:var(--font-serif); font-size:1rem; font-weight:700; color:var(--text-ink); padding:16px 12px; border-top:2px solid var(--text-ink); border-bottom:1px solid var(--text-ink); }
+.academic-table th:first-child, .academic-table td:first-child { text-align:left; }
+.academic-table td { font-family:var(--font-mono); font-size:0.95rem; color:var(--text-muted); padding:14px 12px; border-bottom:0.5px solid var(--line-subtle); }
+.academic-table tr:last-child td { border-bottom:2px solid var(--text-ink); }
+.academic-table .highlight-row td { color:var(--accent-rust); font-weight:700; }
+.table-caption { font-family:var(--font-sans); font-size:0.9rem; color:var(--text-muted); text-align:left; max-width:var(--width-wide); margin-top:12px; border-left:2px solid var(--line-subtle); padding-left:12px; }
+.split-compare { width:100%; max-width:var(--width-wide); display:flex; gap:80px; align-items:center; }
+.split-compare .side { flex:1; position:relative; }
+.split-compare .side:first-child::after { content:''; position:absolute; right:-40px; top:10%; height:80%; width:0.5px; background-color:var(--line-subtle); }
+.split-compare h3 { font-family:var(--font-serif); font-size:1.8rem; color:var(--accent-rust); margin:0 0 24px 0; border-bottom:0.5px solid var(--line-subtle); padding-bottom:16px; }
+.split-compare p { line-height:1.9; color:var(--text-muted); font-size:1.1rem; }
+.chart-grid { display:flex; gap:40px; width:100%; max-width:var(--width-wide); align-items:flex-start; }
+.chart-grid .figure-block { margin:0; max-width:100%; flex:1; }
+.figure-block { width:100%; text-align:center; }
+.figure-block .img-placeholder { width:100%; height:40vh; background:#E2DED6; display:flex; align-items:center; justify-content:center; border-radius:4px; margin-bottom:24px; box-shadow:0 20px 40px rgba(0,0,0,0.04); }
+.figure-block img { width:100%; height:auto; max-height:55vh; object-fit:contain; border-radius:4px; box-shadow:0 20px 40px rgba(0,0,0,0.04); }
+.figure-block figcaption { font-size:0.9rem; color:var(--text-muted); text-align:left; border-left:2px solid var(--line-subtle); padding-left:16px; line-height:1.6; }
+.data-hero { text-align:center; }
+.data-hero .data-number { font-family:var(--font-mono); font-size:7.5rem; font-weight:700; color:var(--accent-rust); line-height:1; margin-bottom:16px; }
+.data-hero .data-label { font-size:1.4rem; color:var(--text-muted); letter-spacing:0.05em; }
+.risk-block { width:100%; max-width:var(--width-wide); border:1px solid var(--line-subtle); padding:40px; border-radius:4px; background:#FAF9F6; }
+.risk-block h3 { font-family:var(--font-serif); margin-top:0; color:var(--accent-rust); border-bottom:1px solid var(--line-subtle); padding-bottom:16px; }
+.risk-block ol { margin:0; padding-left:20px; color:var(--text-muted); line-height:2; font-size:0.95rem; }
+.chart-full { width:100%; max-width:var(--width-wide); height:60vh; }
+@media (max-width:860px) {
+  .key-points-grid { grid-template-columns:1fr; }
+  .split-compare { flex-direction:column; gap:40px; }
+  .split-compare .side:first-child::after { display:none; }
+  .cover-block h1 { font-size:2.6rem; }
+  .statement-hero h2 { font-size:2.2rem; }
+  .chapter-breath h2 { font-size:2.2rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress-bar"></div>
+<div class="side-nav" id="side-nav"></div>
+<div class="page-indicator" id="page-indicator">00 / 00</div>
+
+<div class="presentation-container" id="presentation">
+
+<!-- ===== SLIDE 1: 封面 ===== -->
+<section class="slide" data-title="封面">
+  <div class="cover-block">
+    <div class="report-type reveal">行业学习研究</div>
+    <h1 class="reveal">猪周期，<br>走完了吗？</h1>
+    <p class="reveal" style="font-size:1.5rem;color:var(--text-muted);margin-top:20px;">从能繁母猪到生猪价格的交叉验证</p>
+    <div class="meta reveal">
+      <span>@普力多多</span>
+      <span>基于农业农村部 &amp; 国家统计局公开数据</span>
+      <span>2026 年 4 月</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SLIDE 2: 核心结论 Hero ===== -->
+<section class="slide" data-title="核心判断">
+  <div class="statement-hero">
+    <h2 class="reveal">当前猪周期的下降阶段<br><span class="highlight">尚未走完</span></h2>
+    <p class="reveal" style="font-size:1.2rem;color:var(--text-muted);max-width:680px;margin:40px auto 0 auto;line-height:1.8;">这一判断不是来自对猪价的猜测，而是基本面与技术面的交叉验证：能繁母猪去化速度不足以支撑反转，价格走势的高点逐次降低、低点持续破新低。</p>
+  </div>
+</section>
+
+<!-- ===== SLIDE 3: 结论补充——散户视角 ===== -->
+<section class="slide" data-title="散户策略">
+  <div class="prose-block">
+    <p class="reveal drop-cap">对于普通投资者而言，生猪市场的信息结构对散户天然不利——能繁数据、猪价走势和行业新闻，在到达我们手中之前已经经过了多层传递和解读。与其在信息劣势下做左侧预判，不如等待趋势明朗后做右侧跟随。</p>
+    <p class="reveal">当前阶段，确认趋势反转的信号尚未出现。能繁母猪去化速度缓慢，出栏均重仍在128公斤以上的偏高水平，猪粮比价远低于6比1的盈亏平衡线。保持关注、等待确认，是当下更审慎的选择。</p>
+  </div>
+</section>
+
+<!-- ===== SLIDE 4: 目录 ===== -->
+<section class="slide" data-title="目录">
+  <div class="toc-block">
+    <h2 class="reveal">目录</h2>
+    <div class="toc-item reveal" onclick="scrollToSlide(4)"><span>一 · 猪周期是什么</span><div class="dots"></div><span>P05</span></div>
+    <div class="toc-item reveal" onclick="scrollToSlide(8)"><span>二 · 追踪周期的两个变量</span><div class="dots"></div><span>P09</span></div>
+    <div class="toc-item reveal" onclick="scrollToSlide(14)"><span>三 · 散户应该怎么办</span><div class="dots"></div><span>P15</span></div>
+    <div class="toc-item reveal" onclick="scrollToSlide(18)"><span>四 · 这一轮为何不同</span><div class="dots"></div><span>P19</span></div>
+    <div class="toc-item reveal" onclick="scrollToSlide(22)"><span>五 · 总结</span><div class="dots"></div><span>P23</span></div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 1: 猪周期是什么 ===== -->
+<section class="slide" data-title="机制">
+  <div class="chapter-breath">
+    <div class="chapter-num reveal">CHAPTER 01</div>
+    <h2 class="reveal">猪周期是什么</h2>
+  </div>
+</section>
+
+<!-- ===== SLIDE 6: 五步机制 ===== -->
+<section class="slide" data-title="五步循环">
+  <div style="width:100%;max-width:800px;margin-bottom:30px;">
+    <h2 class="reveal" style="font-family:var(--font-serif);font-size:2rem;margin:0;">一个由生物钟驱动的供需错配</h2>
+  </div>
+  <div class="stepped-list">
+    <div class="stepped-item reveal">
+      <div class="stepped-num">01</div>
+      <div class="stepped-content">
+        <h3>猪价上涨 → 养殖利润提高</h3>
+        <p>养殖户看到利润信号，开始大量补栏仔猪，扩大养殖规模。</p>
+      </div>
+    </div>
+    <div class="stepped-item reveal">
+      <div class="stepped-num">02</div>
+      <div class="stepped-content">
+        <h3>14–18 个月的不可压缩时滞</h3>
+        <p>仔猪长成能繁母猪（约4个月）→ 配种妊娠114天（约4个月）→ 仔猪育肥至出栏（约6个月）。这是生物学硬约束，无法通过技术或资本缩短。</p>
+      </div>
+    </div>
+    <div class="stepped-item reveal">
+      <div class="stepped-num">03</div>
+      <div class="stepped-content">
+        <h3>供给集中释放 → 猪价下跌</h3>
+        <p>18个月前集中补栏的生猪同时出栏，市场供给远超需求，猪价开始下跌，甚至跌破成本线。</p>
+      </div>
+    </div>
+    <div class="stepped-item reveal">
+      <div class="stepped-num">04</div>
+      <div class="stepped-content">
+        <h3>亏损 → 淘汰母猪 → 供给收缩</h3>
+        <p>持续亏损迫使养殖户淘汰能繁母猪、减少补栏。母猪减少后约10个月，生猪出栏量开始实质性下降。</p>
+      </div>
+    </div>
+    <div class="stepped-item reveal">
+      <div class="stepped-num">05</div>
+      <div class="stepped-content">
+        <h3>供给紧缺 → 猪价再次上涨</h3>
+        <p>出栏量降至低位后，供需缺口再次出现，猪价回升——一个新的循环从第一步重新开始。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SLIDE 7: 机制洞察 ===== -->
+<section class="slide" data-title="核心洞察">
+  <div class="insight-quote reveal">
+    <p>今天市场上的猪肉供应量，是由大约一年半以前的养殖决策决定的。供需之间这种永恒的"迟到"关系，就是猪周期的第一性原理。</p>
+    <cite>—— 经济学家 Ezekiel &amp; Kaldor，蛛网模型（Cobweb Model），1930 年代</cite>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 2: 追踪变量 ===== -->
+<section class="slide" data-title="变量">
+  <div class="chapter-breath">
+    <div class="chapter-num reveal">CHAPTER 02</div>
+    <h2 class="reveal">追踪周期的<br>两个核心变量</h2>
+  </div>
+</section>
+
+<!-- ===== SLIDE 9: 能繁母猪是锚 ===== -->
+<section class="slide" data-title="能繁母猪">
+  <div class="prose-block">
+    <p class="reveal drop-cap">如果猪周期的本质是供给时滞，分析它的位置就应该从供给的源头入手——能繁母猪存栏量。从能繁母猪配种到商品猪出栏，固定间隔约10个月，这使得能繁母猪成为预判未来供给方向的最可靠先行指标。</p>
+    <p class="reveal">农业农村部基于这一逻辑设定了3,900万头的正常保有量目标。当前3,904万头的水平略高于目标，且去化速度远慢于历史——2023至2025年年均降幅仅3.3%，而2014至2016年环保去产能期间年均降幅达7.5%。方向正确，但速度不足以形成短期供给缺口。</p>
+  </div>
+</section>
+
+<!-- ===== SLIDE 10: 能繁母猪图片 ===== -->
+<section class="slide" data-title="存栏走势">
+  <div style="width:100%;max-width:var(--width-wide);margin-bottom:30px;">
+    <h2 class="reveal" style="font-family:var(--font-serif);font-size:2rem;margin:0;">中国能繁母猪存栏量 · 2020–2025</h2>
+  </div>
+  <figure class="figure-block reveal">
+    <img src="能繁母猪存栏.png" alt="中国能繁母猪存栏量走势">
+    <figcaption>2012年达到历史峰值5,067万头，2019年非洲猪瘟冲击下降至谷底2,035万头。2020–2022年快速恢复至4,300万头以上。2023年起稳步调减，但当前3,904万头仍高于3,900万头的调控目标。来源：国家统计局、农业农村部。</figcaption>
+  </figure>
+</section>
+
+<!-- ===== SLIDE 11: 价格走势 ===== -->
+<section class="slide chart-slide" data-title="价格走势">
+  <div style="width:100%;max-width:var(--width-wide);margin-bottom:24px;">
+    <h2 class="reveal" style="font-family:var(--font-serif);font-size:2rem;margin:0;">活猪价格走势 · 2020–2026</h2>
+    <p class="reveal" style="font-size:0.9rem;color:var(--text-muted);margin-top:6px;">5月移动均线揭示中长期趋势方向</p>
+  </div>
+  <div id="chart-main" class="chart-full reveal"></div>
+  <div class="table-caption reveal" style="margin-top:16px;">红色标签为价格峰，蓝色标签为价格谷。虚线为5月移动均线，点线为全周期均值。底色区域标识不同周期阶段。来源：国家统计局·全国200个农产品集贸市场调查县·月度频率。</div>
+</section>
+
+<!-- ===== SLIDE 12: 三特征 ===== -->
+<section class="slide" data-title="三大特征">
+  <div style="width:100%;max-width:var(--width-wide);margin-bottom:40px;">
+    <h2 class="reveal" style="font-family:var(--font-serif);font-size:2rem;margin:0;">价格走势的三个一致信号</h2>
+  </div>
+  <div class="key-points-grid">
+    <div class="grid-item reveal">
+      <span class="num">01 / 峰降</span>
+      <h3>价格高点<br>逐次降低</h3>
+      <p>2020年8月36.5元 → 2022年10月27.2元 → 2024年8月20.3元。三座价格峰一峰比一峰低，反映供给端的结构性压力在持续累积。</p>
+    </div>
+    <div class="grid-item reveal">
+      <span class="num">02 / 谷破</span>
+      <h3>价格低点<br>持续破新低</h3>
+      <p>2021年9月13.5元 → 2022年3月13.1元 → 2023年6月14.7元 → 2026年3月12.0元。最近的低点已是6年来的最低水平。</p>
+    </div>
+    <div class="grid-item reveal">
+      <span class="num">03 / 均线压制</span>
+      <h3>5月均线持续<br>运行在均值下方</h3>
+      <p>均线（虚线）方向仍指向下倾，且长期处于全周期均值（点线）以下。在技术分析框架中构成标准的下降趋势定义。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SLIDE 13: 交叉验证 ===== -->
+<section class="slide" data-title="交叉验证">
+  <div class="insight-quote reveal">
+    <p>基本面跟踪和技术面观察，两套完全独立的方法指向了同一个方向——这不是巧合，而是供给端的核心矛盾同时在两个维度上留下了痕迹。</p>
+    <cite>—— 交叉验证的意义：独立证据链的汇合显著增强了判断的可靠性</cite>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 3: 散户策略 ===== -->
+<section class="slide" data-title="策略">
+  <div class="chapter-breath">
+    <div class="chapter-num reveal">CHAPTER 03</div>
+    <h2 class="reveal">散户应该怎么办</h2>
+  </div>
+</section>
+
+<!-- ===== SLIDE 15: 信息劣势 ===== -->
+<section class="slide" data-title="信息劣势">
+  <div class="prose-block">
+    <p class="reveal drop-cap">散户投资者在生猪市场中面临一个结构性不平等：真正的一手信息——大型养殖场的补栏计划、屠宰企业的收猪价格、地区的疫病传播状况——掌握在产业内部人士手中。等这些信息通过统计数据或新闻报道到达散户时，市场往往已经在消化它们了。</p>
+    <p class="reveal">这种信息劣势意味着，散户在底部尚未确认、趋势尚不明朗的阶段进行提前布局，胜率天然偏低。 <strong>左侧交易的前提是拥有比市场更准确或更及时的信息来判断底部位置，而散户恰好在这一前提上处于劣势。</strong></strong></p>
+  </div>
+</section>
+
+<!-- ===== SLIDE 16: 左 vs 右 ===== -->
+<section class="slide" data-title="左vs右">
+  <div class="split-compare">
+    <div class="side reveal">
+      <h3>左侧交易</h3>
+      <p style="font-size:1.15rem;color:var(--text-ink);">在底部尚未确认时提前介入。前提是拥有比市场更准确的信息来判断底部位置。散户在信息链条中处于末端，这一前提难以成立。</p>
+      <p style="margin-top:16px;">本质是在信息劣势下做预判——赌的是"我认为底部在哪里"。</p>
+    </div>
+    <div class="side reveal">
+      <h3>右侧交易</h3>
+      <p style="font-size:1.15rem;color:var(--accent-rust);">放弃对"最低点"的预测，等待确认信号出现后再介入。能繁母猪连续3个月趋势性下降、出栏均重回落、猪粮比回升至盈亏线上方——当这些信号出现时再入场。</p>
+      <p style="margin-top:16px;">本质是在趋势确立后做跟随——买不到最低点，但买得到确定性。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SLIDE 17: 当前信号缺失 ===== -->
+<section class="slide" data-title="信号未至">
+  <div class="prose-block">
+    <p class="reveal">回到当前时点的现实：确认信号尚未出现。能繁母猪去化月均不足0.5%，出栏均重128.51公斤仍在历史同期偏高水平，猪粮比价4.23远低于5比1的一级预警线。按右侧交易的逻辑，当前宜保持关注而非急于行动。</p>
+    <p class="reveal">这不是消极等待，而是对信息劣势的清醒认知。在生猪市场，散户唯一的优势是——我们有耐心等到趋势明朗，而产业资本在亏损中需要承受每一天的资金成本。</p>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 4: 不同之处 ===== -->
+<section class="slide" data-title="新特征">
+  <div class="chapter-breath">
+    <div class="chapter-num reveal">CHAPTER 04</div>
+    <h2 class="reveal">这一轮为何不同</h2>
+  </div>
+</section>
+
+<!-- ===== SLIDE 19: PSY Data Hero ===== -->
+<section class="slide" data-title="PSY">
+  <div class="data-hero">
+    <div class="data-number reveal">+40%</div>
+    <div class="data-label reveal">PSY (每头能繁母猪每年提供的断奶仔猪数) 从 2017 年的 17.38 跃升至 2025 年的 24.34，头部企业超过 29</div>
+    <p class="reveal" style="max-width:600px;margin:30px auto 0 auto;color:var(--text-muted);line-height:1.8;text-align:left;">每头母猪每年提供的断奶仔猪数提升了40%。这意味着同样数量的能繁母猪，可以产出40%更多的仔猪。"能繁减少 = 供给减少"的传统等式已被打破——2025年能繁同比减少117万头，猪肉产量却达到5,938万吨的历史最高水平。</p>
+  </div>
+</section>
+
+<!-- ===== SLIDE 20: 集中度 ===== -->
+<section class="slide" data-title="集中度">
+  <div class="split-compare">
+    <div class="side reveal">
+      <h3>散户时代</h3>
+      <p style="font-size:1.15rem;color:var(--text-ink);">TOP10企业出栏占比仅9.64%。亏损持续3至6个月即触发大面积淘汰——散户资金有限、退出成本低，去产能速度快且彻底。猪周期规律性地3至4年一轮。</p>
+      <p style="margin-top:16px;">历史规律：亏损 → 退出 → 供给收缩 → 价格回升。</p>
+    </div>
+    <div class="side reveal">
+      <h3>大企业时代</h3>
+      <p style="font-size:1.15rem;color:var(--accent-rust);">TOP10企业出栏占比超过30%。39家百万头级猪企合计出栏2.95亿头，同比增长24.5%。巨头拥有银行授信和股市融资，在亏损中不退反进。</p>
+      <p style="margin-top:16px;">新常态：亏损 → 扛着不退 → 去化缓慢 → 磨底拉长。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SLIDE 21: 双重变量叠加大图景 ===== -->
+<section class="slide" data-title="双重变量">
+  <div class="prose-block">
+    <p class="reveal drop-cap">PSY革命与集中度跃升的叠加效应，比各自单独作用更为深远。PSY(Pigs Weaned per Sow per Year)即<b每头能繁母猪每年提供的断奶仔猪数生产效率的提升使得去化效果被部分抵消——母猪少了，但每头母猪产出更多；集中度的提升使得市场出清机制受阻——亏损了，但大企业不退。美国在完成规模化转型后，猪周期从4年拉长至7至11年，中国正在重复这一路径。</p>
+    <p class="reveal">猪周期没有消失。但它的形态正在从"大起大落"的短波动走向"更长、更难熬"的慢调整。理解这一结构变迁，比猜测某一个月的猪价涨跌重要得多。</p>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 5: 总结 ===== -->
+<section class="slide" data-title="总结">
+  <div class="chapter-breath">
+    <div class="chapter-num reveal">CHAPTER 05</div>
+    <h2 class="reveal">总结</h2>
+  </div>
+</section>
+
+<!-- ===== SLIDE 23: 核心判断收束 ===== -->
+<section class="slide" data-title="核心判断">
+  <div class="statement-hero">
+    <h2 class="reveal">这不是关于"底部在哪里"的猜测<br><span class="highlight">而是关于"出清完成了吗"的判断</span></h2>
+    <p class="reveal" style="font-size:1.2rem;color:var(--text-muted);max-width:680px;margin:40px auto 0 auto;line-height:1.8;">基本面和技术面给出了同一答案：还没有。对于缺乏一手信息的散户投资者，在等待中保持关注，比在不确定中提前押注，更接近理性的选择。</p>
+  </div>
+</section>
+
+<!-- ===== SLIDE 24: 参考文献 ===== -->
+<section class="slide" data-title="参考文献">
+  <div class="risk-block reveal">
+    <h3>参考文献与数据来源</h3>
+    <ol>
+      <li>张立平, 丛林, 周勋章, 刘振涛 (2026). 我国"猪周期"的运行规律、影响因素和对策建议.</li>
+      <li>朱增勇, 周亮 (2023). 猪价周期性波动成因及运行机制. 价格理论与实践.</li>
+      <li>田志敏, 孙俊娜, 张骏, 王祖力 (2023). 新一轮"猪周期"特征及其影响因素分析. 中国畜牧杂志.</li>
+      <li>李文星, 张欢 (2023). 我国猪周期下生猪期货价格发现功能研究. 价格理论与实践.</li>
+      <li>谢泽锋 (2026.04.07). 嗜血猪周期，前所未有. 巨潮WAVE.</li>
+      <li>张子阳 (2026.04.26). 生猪价格底部反弹，去产能逻辑不变. 国金证券行业周报.</li>
+    </ol>
+    <div style="margin-top:20px;border-top:1px dashed var(--line-subtle);padding-top:16px;font-size:0.8rem;color:var(--text-muted);">
+      数据来源：国家统计局、农业农村部月度监测数据、Wind、iFind · 制图：普力多多 · 2026年4月
+    </div>
+  </div>
+</section>
+
+</div><!-- /presentation-container -->
+
+<script>
+// ════════════════ ECharts 价格走势图 ════════════════
+(function(){
+var DATA=[{"date":"2020-01-01","live_price":34.89,"live_mom":6.9,"live_yoy":179.3,"date_display":"2020年01月"},{"date":"2020-02-01","live_price":36.33,"live_mom":4.1,"live_yoy":184.5,"date_display":"2020年02月"},{"date":"2020-03-01","live_price":34.92,"live_mom":-3.9,"live_yoy":134.0,"date_display":"2020年03月"},{"date":"2020-04-01","live_price":33.02,"live_mom":-5.4,"live_yoy":120.7,"date_display":"2020年04月"},{"date":"2020-05-01","live_price":29.52,"live_mom":-10.6,"live_yoy":97.1,"date_display":"2020年05月"},{"date":"2020-06-01","live_price":32.63,"live_mom":10.5,"live_yoy":98.4,"date_display":"2020年06月"},{"date":"2020-07-01","live_price":35.63,"live_mom":9.2,"live_yoy":98.3,"date_display":"2020年07月"},{"date":"2020-08-01","live_price":36.52,"live_mom":2.5,"live_yoy":58.2,"date_display":"2020年08月"},{"date":"2020-09-01","live_price":34.77,"live_mom":-4.8,"live_yoy":29.9,"date_display":"2020年09月"},{"date":"2020-10-01","live_price":31.08,"live_mom":-10.6,"live_yoy":-15.1,"date_display":"2020年10月"},{"date":"2020-11-01","live_price":30.26,"live_mom":-2.6,"live_yoy":-6.0,"date_display":"2020年11月"},{"date":"2020-12-01","live_price":33.58,"live_mom":11.0,"live_yoy":2.9,"date_display":"2020年12月"},{"date":"2021-01-01","live_price":35.09,"live_mom":4.5,"live_yoy":0.6,"date_display":"2021年01月"},{"date":"2021-02-01","live_price":30.56,"live_mom":-12.9,"live_yoy":-15.9,"date_display":"2021年02月"},{"date":"2021-03-01","live_price":28.33,"live_mom":-7.3,"live_yoy":-18.9,"date_display":"2021年03月"},{"date":"2021-04-01","live_price":24.42,"live_mom":-13.8,"live_yoy":-26.0,"date_display":"2021年04月"},{"date":"2021-05-01","live_price":19.64,"live_mom":-19.6,"live_yoy":-33.5,"date_display":"2021年05月"},{"date":"2021-06-01","live_price":14.81,"live_mom":-24.6,"live_yoy":-54.6,"date_display":"2021年06月"},{"date":"2021-07-01","live_price":16.0,"live_mom":8.0,"live_yoy":-55.1,"date_display":"2021年07月"},{"date":"2021-08-01","live_price":15.27,"live_mom":-4.6,"live_yoy":-58.2,"date_display":"2021年08月"},{"date":"2021-09-01","live_price":13.53,"live_mom":-11.4,"live_yoy":-61.1,"date_display":"2021年09月"},{"date":"2021-10-01","live_price":15.54,"live_mom":14.9,"live_yoy":-50.0,"date_display":"2021年10月"},{"date":"2021-11-01","live_price":18.1,"live_mom":16.5,"live_yoy":-40.2,"date_display":"2021年11月"},{"date":"2021-12-01","live_price":17.51,"live_mom":-3.3,"live_yoy":-47.9,"date_display":"2021年12月"},{"date":"2022-01-01","live_price":15.83,"live_mom":-9.6,"live_yoy":-54.9,"date_display":"2022年01月"},{"date":"2022-02-01","live_price":14.06,"live_mom":-11.2,"live_yoy":-54.0,"date_display":"2022年02月"},{"date":"2022-03-01","live_price":13.06,"live_mom":-7.1,"live_yoy":-53.9,"date_display":"2022年03月"},{"date":"2022-04-01","live_price":14.31,"live_mom":9.6,"live_yoy":-41.4,"date_display":"2022年04月"},{"date":"2022-05-01","live_price":15.51,"live_mom":8.4,"live_yoy":-21.0,"date_display":"2022年05月"},{"date":"2022-06-01","live_price":16.69,"live_mom":7.6,"live_yoy":12.7,"date_display":"2022年06月"},{"date":"2022-07-01","live_price":21.63,"live_mom":29.6,"live_yoy":35.2,"date_display":"2022年07月"},{"date":"2022-08-01","live_price":21.85,"live_mom":1.0,"live_yoy":43.1,"date_display":"2022年08月"},{"date":"2022-09-01","live_price":23.56,"live_mom":7.8,"live_yoy":74.1,"date_display":"2022年09月"},{"date":"2022-10-01","live_price":27.22,"live_mom":15.5,"live_yoy":75.2,"date_display":"2022年10月"},{"date":"2022-11-01","live_price":24.82,"live_mom":-8.8,"live_yoy":37.1,"date_display":"2022年11月"},{"date":"2022-12-01","live_price":19.58,"live_mom":-21.1,"live_yoy":11.8,"date_display":"2022年12月"},{"date":"2023-01-01","live_price":17.45,"live_mom":-10.9,"live_yoy":10.2,"date_display":"2023年01月"},{"date":"2023-02-01","live_price":16.33,"live_mom":-6.4,"live_yoy":16.1,"date_display":"2023年02月"},{"date":"2023-03-01","live_price":15.86,"live_mom":-2.9,"live_yoy":21.4,"date_display":"2023年03月"},{"date":"2023-04-01","live_price":15.05,"live_mom":-5.1,"live_yoy":5.2,"date_display":"2023年04月"},{"date":"2023-05-01","live_price":14.84,"live_mom":-1.4,"live_yoy":-4.3,"date_display":"2023年05月"},{"date":"2023-06-01","live_price":14.67,"live_mom":-1.1,"live_yoy":-12.1,"date_display":"2023年06月"},{"date":"2023-07-01","live_price":14.73,"live_mom":0.4,"live_yoy":-31.9,"date_display":"2023年07月"},{"date":"2023-08-01","live_price":16.98,"live_mom":15.3,"live_yoy":-22.3,"date_display":"2023年08月"},{"date":"2023-09-01","live_price":16.75,"live_mom":-1.4,"live_yoy":-28.9,"date_display":"2023年09月"},{"date":"2023-10-01","live_price":15.98,"live_mom":-4.6,"live_yoy":-41.3,"date_display":"2023年10月"},{"date":"2023-11-01","live_price":15.63,"live_mom":-2.2,"live_yoy":-37.0,"date_display":"2023年11月"},{"date":"2023-12-01","live_price":15.43,"live_mom":-1.3,"live_yoy":-21.2,"date_display":"2023年12月"},{"date":"2024-01-01","live_price":15.31,"live_mom":-0.8,"live_yoy":-12.3,"date_display":"2024年01月"},{"date":"2024-02-01","live_price":15.16,"live_mom":-1.0,"live_yoy":-7.2,"date_display":"2024年02月"},{"date":"2024-03-01","live_price":15.5,"live_mom":2.2,"live_yoy":-2.3,"date_display":"2024年03月"},{"date":"2024-04-01","live_price":15.53,"live_mom":0.2,"live_yoy":3.2,"date_display":"2024年04月"},{"date":"2024-05-01","live_price":16.21,"live_mom":4.4,"live_yoy":9.2,"date_display":"2024年05月"},{"date":"2024-06-01","live_price":17.89,"live_mom":10.4,"live_yoy":21.9,"date_display":"2024年06月"},{"date":"2024-07-01","live_price":18.91,"live_mom":5.7,"live_yoy":28.4,"date_display":"2024年07月"},{"date":"2024-08-01","live_price":20.3,"live_mom":7.4,"live_yoy":19.6,"date_display":"2024年08月"},{"date":"2024-09-01","live_price":19.28,"live_mom":-5.0,"live_yoy":15.1,"date_display":"2024年09月"},{"date":"2024-10-01","live_price":18.62,"live_mom":-3.4,"live_yoy":16.5,"date_display":"2024年10月"},{"date":"2024-11-01","live_price":17.86,"live_mom":-4.1,"live_yoy":14.3,"date_display":"2024年11月"},{"date":"2024-12-01","live_price":17.18,"live_mom":-3.8,"live_yoy":11.4,"date_display":"2024年12月"},{"date":"2025-01-01","live_price":17.22,"live_mom":0.2,"live_yoy":12.4,"date_display":"2025年01月"},{"date":"2025-02-01","live_price":16.45,"live_mom":-4.4,"live_yoy":8.6,"date_display":"2025年02月"},{"date":"2025-03-01","live_price":15.97,"live_mom":-3.0,"live_yoy":3.0,"date_display":"2025年03月"},{"date":"2025-04-01","live_price":15.92,"live_mom":-0.3,"live_yoy":2.5,"date_display":"2025年04月"},{"date":"2025-05-01","live_price":15.55,"live_mom":-2.3,"live_yoy":-4.1,"date_display":"2025年05月"},{"date":"2025-06-01","live_price":15.29,"live_mom":-1.7,"live_yoy":-14.6,"date_display":"2025年06月"},{"date":"2025-07-01","live_price":15.26,"live_mom":-0.2,"live_yoy":-19.3,"date_display":"2025年07月"},{"date":"2025-08-01","live_price":14.94,"live_mom":-2.1,"live_yoy":-26.4,"date_display":"2025年08月"},{"date":"2025-09-01","live_price":14.27,"live_mom":-4.4,"live_yoy":-26.0,"date_display":"2025年09月"},{"date":"2025-10-01","live_price":13.41,"live_mom":-6.0,"live_yoy":-27.9,"date_display":"2025年10月"},{"date":"2025-11-01","live_price":13.23,"live_mom":-1.3,"live_yoy":-25.9,"date_display":"2025年11月"},{"date":"2025-12-01","live_price":13.01,"live_mom":-1.7,"live_yoy":-24.3,"date_display":"2025年12月"},{"date":"2026-01-01","live_price":13.95,"live_mom":7.2,"live_yoy":-19.0,"date_display":"2026年01月"},{"date":"2026-02-01","live_price":13.38,"live_mom":-4.1,"live_yoy":-18.7,"date_display":"2026年02月"},{"date":"2026-03-01","live_price":12.03,"live_mom":-10.1,"live_yoy":-24.6,"date_display":"2026年03月"}];
+var dates=DATA.map(function(r){return r.date;});
+var vals=DATA.map(function(r){return r.live_price;});
+function smooth(arr,w){var out=[];for(var i=0;i<arr.length;i++){var s=0,c=0;for(var j=Math.max(0,i-w+1);j<=Math.min(arr.length-1,i+w-1);j++){s+=arr[j];c++;}out.push(+(s/c).toFixed(2));}return out;}
+var ma5=smooth(vals,5);
+var avg=+(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(1);
+var dom=document.getElementById('chart-main');
+if(dom){
+  var chart=echarts.init(dom);
+  var phases=[{s:'2020-01-01',e:'2020-09-01',c:'rgba(184,75,49,0.06)',n:'超级周期高位'},{s:'2020-09-01',e:'2021-10-01',c:'rgba(115,110,103,0.05)',n:'断崖下跌'},{s:'2021-10-01',e:'2022-11-01',c:'rgba(184,75,49,0.06)',n:'触底反弹'},{s:'2022-11-01',e:'2024-02-01',c:'rgba(115,110,103,0.05)',n:'低位震荡'},{s:'2024-02-01',e:'2024-09-01',c:'rgba(184,75,49,0.06)',n:'温和反弹'},{s:'2024-09-01',e:'2026-04-01',c:'rgba(115,110,103,0.05)',n:'持续下行'}];
+  var kps=[{d:'2020-08-01',t:'peak',label:'2020.08\n36.5元'},{d:'2021-09-01',t:'trough',label:'2021.09\n13.5元'},{d:'2022-03-01',t:'trough',label:'2022.03\n13.1元'},{d:'2022-10-01',t:'peak',label:'2022.10\n27.2元'},{d:'2023-06-01',t:'trough',label:'2023.06\n14.7元'},{d:'2024-08-01',t:'peak',label:'2024.08\n20.3元'},{d:'2026-03-01',t:'trough',label:'2026.03\n12.0元'}];
+  var peakCoords=kps.filter(function(k){return k.t==='peak';}).map(function(k){var idx=dates.indexOf(k.d);return {coord:[k.d,vals[idx]],label:k.label};});
+  var troughCoords=kps.filter(function(k){return k.t==='trough';}).map(function(k){var idx=dates.indexOf(k.d);return {coord:[k.d,vals[idx]],label:k.label};});
+  chart.setOption({
+    tooltip:{trigger:'axis',backgroundColor:'#F4F1EA',borderColor:'#E2DED6',borderWidth:1,padding:[12,16],textStyle:{color:'#2C2B29',fontSize:12},extraCssText:'box-shadow:0 4px 20px rgba(0,0,0,0.06);border-radius:6px;',formatter:function(p){var idx=p[0].dataIndex;var r=DATA[idx];var mc=r.live_mom>=0?'#B84B31':'#1D39C4',yc=r.live_yoy>=0?'#B84B31':'#1D39C4';return '<div style="font-weight:700;font-size:14px;margin-bottom:8px;font-family:\'Noto Serif SC\',serif;">'+r.date_display+'</div><table style="font-size:12px;border-collapse:collapse;"><tr><td style="padding:2px 10px 2px 0;color:#736E67;">活猪价格</td><td style="padding:2px 0;font-weight:700;font-family:\'JetBrains Mono\',monospace;">'+r.live_price+' 元/kg</td></tr><tr><td style="padding:2px 10px 2px 0;color:#736E67;">5月均线</td><td style="padding:2px 0;font-family:\'JetBrains Mono\',monospace;color:#736E67;">'+ma5[idx]+' 元/kg</td></tr><tr><td style="padding:2px 10px 2px 0;color:#736E67;">环比</td><td style="padding:2px 0;font-weight:600;color:'+mc+';font-family:\'JetBrains Mono\',monospace;">'+(r.live_mom>=0?'+':'')+r.live_mom+'%</td></tr><tr><td style="padding:2px 10px 2px 0;color:#736E67;">同比</td><td style="padding:2px 0;font-weight:600;color:'+yc+';font-family:\'JetBrains Mono\',monospace;">'+(r.live_yoy>=0?'+':'')+r.live_yoy+'%</td></tr></table>';}},
+    grid:{left:55,right:40,top:30,bottom:50},
+    xAxis:{type:'time',min:'2020-01-01',max:'2026-05-01',axisLine:{lineStyle:{color:'#E2DED6'}},axisTick:{show:false},axisLabel:{color:'#736E67',fontSize:10,formatter:function(v){var d=new Date(v);return d.getFullYear()+'.'+('0'+(d.getMonth()+1)).slice(-2);}},splitLine:{show:false}},
+    yAxis:{type:'value',name:'元 / 公斤',nameTextStyle:{color:'#736E67',fontSize:11},axisLabel:{color:'#736E67',fontSize:10,fontFamily:'JetBrains Mono,monospace'},axisLine:{show:false},axisTick:{show:false},splitLine:{lineStyle:{color:'#E2DED6',type:'dashed',opacity:0.5}},min:6,max:42},
+    dataZoom:[{type:'slider',bottom:8,height:18,borderColor:'#E2DED6',fillerColor:'rgba(184,75,49,0.06)',handleStyle:{color:'#B84B31'},dataBackground:{lineStyle:{color:'#B84B31'},areaStyle:{color:'rgba(184,75,49,0.04)'}},textStyle:{color:'#736E67',fontSize:9}},{type:'inside'}],
+    series:[
+      {type:'line',name:'阶段',data:[],markArea:{silent:true,label:{show:true,position:'insideTop',fontSize:10,color:'#736E67',fontWeight:500},data:phases.map(function(p){return[{xAxis:p.s,itemStyle:{color:p.c}},{xAxis:p.e,name:p.n}];})},z:0},
+      {type:'line',name:'活猪价格',data:dates.map(function(d,i){return[d,vals[i]];}),lineStyle:{color:'#B84B31',width:1.8},itemStyle:{color:'#B84B31'},symbol:'circle',symbolSize:2,emphasis:{symbolSize:6,itemStyle:{borderWidth:2,borderColor:'#F4F1EA'}},z:10},
+      {type:'line',name:'5月均线',data:dates.map(function(d,i){return[d,ma5[i]];}),lineStyle:{color:'#B84B31',width:2.2,type:'dashed',opacity:0.35},itemStyle:{color:'#B84B31'},symbol:'none',z:9},
+      {type:'line',name:'均值 '+avg,data:dates.map(function(d){return[d,avg];}),lineStyle:{color:'#BFBFBF',width:1,type:'dotted',opacity:0.7},symbol:'none',z:1},
+      {type:'scatter',name:'价格峰',data:peakCoords.map(function(m){return m.coord;}),symbol:'pin',symbolSize:42,itemStyle:{color:'#B84B31'},label:{show:true,formatter:function(p){var m=peakCoords.find(function(x){return x.coord[0]===p.value[0];});return m?m.label:'';},position:'top',distance:10,fontSize:9,fontWeight:'bold',color:'#B84B31',backgroundColor:'#F4F1EA',padding:[3,5],borderRadius:4,borderColor:'#B84B31',borderWidth:1},z:15},
+      {type:'scatter',name:'价格谷',data:troughCoords.map(function(m){return m.coord;}),symbol:'pin',symbolSize:42,itemStyle:{color:'#1D39C4'},label:{show:true,formatter:function(p){var m=troughCoords.find(function(x){return x.coord[0]===p.value[0];});return m?m.label:'';},position:'bottom',distance:10,fontSize:9,fontWeight:'bold',color:'#1D39C4',backgroundColor:'#F4F1EA',padding:[3,5],borderRadius:4,borderColor:'#1D39C4',borderWidth:1},z:15}
+    ]
+  });
+  window.addEventListener('resize',function(){chart.resize();});
+}
+})();
+
+// ════════════════ NAV & SCROLL ════════════════
+document.addEventListener('DOMContentLoaded', function(){
+  var container = document.getElementById('presentation');
+  var slides = document.querySelectorAll('.slide');
+  var indicator = document.getElementById('page-indicator');
+  var sideNav = document.getElementById('side-nav');
+  var progressBar = document.getElementById('progress-bar');
+  var total = slides.length;
+
+  slides.forEach(function(slide, index){
+    var title = slide.getAttribute('data-title') || ('P '+(index+1));
+    var navItem = document.createElement('div');
+    navItem.className = 'nav-item';
+    navItem.innerHTML = '<div class="nav-indicator"></div><div class="nav-label">'+title+'</div>';
+    navItem.addEventListener('click', function(){ slide.scrollIntoView({behavior:'smooth'}); });
+    sideNav.appendChild(navItem);
+  });
+
+  var navItems = document.querySelectorAll('.nav-item');
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-active');
+        var idx = Array.from(slides).indexOf(entry.target);
+        indicator.textContent = String(idx+1).padStart(2,'0')+' / '+String(total).padStart(2,'0');
+        progressBar.style.width = (idx/(total-1))*100+'%';
+        navItems.forEach(function(n){n.classList.remove('active');});
+        navItems[idx].classList.add('active');
+      } else {
+        entry.target.classList.remove('is-active');
+      }
+    });
+  }, {root:container,rootMargin:'0px',threshold:0.5});
+
+  slides.forEach(function(s){observer.observe(s);});
+
+  document.addEventListener('keydown',function(e){
+    var currentIndex = Array.from(slides).findIndex(function(s){return s.classList.contains('is-active');});
+    if(e.key==='ArrowDown'||e.key==='PageDown'||e.key===' '){e.preventDefault();if(currentIndex<total-1) slides[currentIndex+1].scrollIntoView({behavior:'smooth'});}
+    else if(e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();if(currentIndex>0) slides[currentIndex-1].scrollIntoView({behavior:'smooth'});}
+  });
+});
+
+window.scrollToSlide = function(index){
+  var slides = document.querySelectorAll('.slide');
+  if(slides[index]) slides[index].scrollIntoView({behavior:'smooth'});
+};
+</script>
+</body>
+</html>
